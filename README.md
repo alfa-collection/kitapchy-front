@@ -1,36 +1,72 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Kitapchy frontend
 
-## Getting Started
+This is the Next.js frontend for Kitapchy.
 
-First, run the development server:
+## Prerequisites
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+Choose one installation method:
+
+- Local development: Node.js 24+ and pnpm 12.8.1+.
+- Containerized deployment: Docker.
+
+The frontend needs the URL of the backend API. Set it in `NEXT_PUBLIC_API_URL`, for example `http://localhost:1337`.
+
+## Local installation
+
+From this `frontend` directory, install dependencies and create your environment file:
+
+```sh
+corepack enable
+pnpm install --frozen-lockfile
+cp .env.example .env.local
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Edit `.env.local`:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```env
+NEXT_PUBLIC_API_URL=http://localhost:1337
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Start the development server:
 
-## Learn More
+```sh
+pnpm dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+Open [http://localhost:3000](http://localhost:3000).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+To create and run a local production build:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```sh
+pnpm build
+pnpm start
+```
 
-## Deploy on Vercel
+## Docker installation
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Build the production image from this `frontend` directory. `NEXT_PUBLIC_API_URL` is a public, browser-facing value and is embedded during the Next.js build, so supply it with `--build-arg`.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```sh
+docker build \
+  --build-arg NEXT_PUBLIC_API_URL=http://localhost:1337 \
+  -t kitapchy-frontend .
+```
+
+Run the container:
+
+```sh
+docker run --rm --name kitapchy-frontend -p 3000:3000 kitapchy-frontend
+```
+
+Then open [http://localhost:3000](http://localhost:3000).
+
+Use an API URL that visitors' browsers can reach, such as the public backend domain or a reverse-proxy URL.
+
+## Commands
+
+```sh
+pnpm dev    # Start the development server
+pnpm build  # Create a production build
+pnpm start  # Serve the production build
+pnpm lint   # Run ESLint
+```
