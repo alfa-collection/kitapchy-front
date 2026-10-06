@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const backendUrl = (process.env.NEXT_PUBLIC_API_URL || "http://192.168.137.130:1337").replace(/\/$/, "");
+const backendUrl = (process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || "http://192.168.137.181").replace(/\/$/, "");
 
 /** Server-side proxy for the remote Strapi Books collection. */
 export async function GET(request: NextRequest) {

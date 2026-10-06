@@ -52,15 +52,31 @@ docker build \
   -t kitapchy-frontend .
 ```
 
-Run the container:
+The production image installs nginx in its final Alpine stage. Supervisor runs
+the standalone Next.js server internally on port `3000` and nginx on public
+port `80`. Nginx acts as the reverse proxy and has buffering disabled so Next.js
+streaming responses continue to work.
+
+Run the container by mapping a host port to nginx port `80`:
 
 ```sh
-docker run --rm --name kitapchy-frontend -p 3000:3000 kitapchy-frontend
+docker run --rm --name kitapchy-frontend -p 3000:80 kitapchy-frontend
 ```
 
 Then open [http://localhost:3000](http://localhost:3000).
 
 Use an API URL that visitors' browsers can reach, such as the public backend domain or a reverse-proxy URL.
+
+The container includes a health check against `http://127.0.0.1/`. To inspect
+the two managed processes or follow their output, use:
+
+```sh
+docker inspect --format '{{.State.Health.Status}}' kitapchy-frontend
+docker logs -f kitapchy-frontend
+```
+
+Do not expose the internal Next.js port `3000` from this image. Traffic should
+enter through nginx on container port `80`.
 
 ## Commands
 
