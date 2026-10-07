@@ -50,7 +50,11 @@ export type NamedRelationInput = { name?: string; book_id?: RelationId[]; locale
 export type CountryInput = { name?: string; book_id?: RelationId; locale?: string; localizations?: RelationId[] };
 
 export type UserRole = { id: number; name: string; description?: string; type: string; createdAt?: string; updatedAt?: string };
-export type PaymentMethod = { id: string; brand: string; last4: string };
+export type PaymentMethod = {
+  id: string;
+  brand: string;
+  userName?: string;
+};
 export type SubscriptionPlan = "one_month" | "three_month" | "six_month" | "one_year";
 export type SubscriptionPlanRecord = { id?: number; documentId?: string; plan: SubscriptionPlan; price: number | string; currency: string };
 export type UserSubscription = { id?: number; documentId?: string; plan: SubscriptionPlan; status: "active" | "expired" | "cancelled"; starts_at: string; ends_at: string; auto_renew?: boolean; promo_code?: { id?: number; documentId?: string; code?: string; plan?: SubscriptionPlan } | null };

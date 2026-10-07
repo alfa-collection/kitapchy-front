@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, type MouseEvent } from "react";
 import { addDictionaryWord, getBook, getCurrentUser, listDictionaryEntries, listUserSubscriptions, restoreAuthToken } from "@/lib/api";
@@ -71,7 +72,7 @@ function ReaderLoading({ title }: { title: string }) {
   return <section className="reader-loading-screen" role="status" aria-live="polite" aria-label="Loading book">
     <div className="loading-book" aria-hidden="true">
       <span className="loading-book-spine" />
-      <span className="loading-book-mark">k</span>
+      <Image className="loading-book-mark" src="/logo.png" alt="" width={450} height={450} />
       <span className="loading-book-page loading-book-page-one" />
       <span className="loading-book-page loading-book-page-two" />
     </div>

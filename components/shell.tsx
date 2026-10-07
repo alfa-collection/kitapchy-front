@@ -13,6 +13,7 @@ import {
 import { resolveAccountPlan, type AccountPlan } from "@/lib/account";
 import { useLanguage } from "@/lib/language";
 import { LanguageSwitcher } from "@/components/language-switcher";
+import { BrandLogo } from "@/components/brand-logo";
 
 export function Shell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -44,9 +45,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <Link href="/" className="brand">
-          <span>k</span>kitapchy
-        </Link>
+        <BrandLogo />
         <nav>
           {nav.map(([label, href]) => (
             <Link

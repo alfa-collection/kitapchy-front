@@ -11,6 +11,10 @@ const nunito = Nunito_Sans({
 export const metadata: Metadata = {
   title: "Kitapchy — Read English books",
   description: "Read, listen and learn with English books.",
+  icons: {
+    icon: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
