@@ -78,6 +78,25 @@ docker logs -f kitapchy-frontend
 Do not expose the internal Next.js port `3000` from this image. Traffic should
 enter through nginx on container port `80`.
 
+### pnpm build-script approval
+
+The project explicitly permits the `unrs-resolver` install script in
+`pnpm-workspace.yaml`. It is required during dependency installation and is
+approved narrowly rather than enabling lifecycle scripts for every package.
+
+If a Docker build reports `ERR_PNPM_IGNORED_BUILDS`, confirm that the build is
+using the committed `pnpm-workspace.yaml` and that it contains:
+
+```yaml
+allowBuilds:
+  sharp: false
+  unrs-resolver: true
+```
+
+The `Tarball download average speed ... is below 50 KiB/s` message is only a
+network-speed warning. The actual failure is the `ERR_PNPM_IGNORED_BUILDS`
+message that follows it.
+
 ## Commands
 
 ```sh
