@@ -218,6 +218,13 @@ export default function ReaderPage({ params }: { params: Promise<{ slug: string 
   }, [folder, isPro, loadingPart, previousPart]);
   const handleScroll = () => { const body = readerBody.current; if (!body) return; if (body.scrollTop < 160) void loadPreviousPart(); else if (body.scrollHeight - body.scrollTop - body.clientHeight < 600) void loadNextPart(); };
   const handleAudioTimeUpdate = (currentTime: number) => {
+    if (!isPro && audioOffset + currentTime >= previewDuration) {
+      audio.current?.pause();
+      setPlaying(false);
+      setTime(Math.max(0, previewDuration - audioOffset));
+      setUpgradeOpen(true);
+      return;
+    }
     setTime(currentTime);
   };
   const nextSentence = sentences[activeIndex + 1];
@@ -279,6 +286,11 @@ export default function ReaderPage({ params }: { params: Promise<{ slug: string 
     const localTime = target - offset; const targetTrack = audioTracks[trackIndex];
     let availableSentences = sentences;
     let nextIndex = availableSentences.findIndex((sentence) => audioFile(sentence.audio) === targetTrack?.name && localTime <= sentence.end);
+    if (nextIndex < 0 && !isPro) {
+      setPlaying(false);
+      setUpgradeOpen(true);
+      return;
+    }
     // A jump may point to an unloaded text chunk. Load only as far as the requested
     // audio file, preserving the lightweight initial reader load.
     if (nextIndex < 0 && folder && hasMore && !partRequestInFlight.current) {
