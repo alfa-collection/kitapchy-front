@@ -85,12 +85,19 @@ The project explicitly permits the `unrs-resolver` install script in
 approved narrowly rather than enabling lifecycle scripts for every package.
 
 If a Docker build reports `ERR_PNPM_IGNORED_BUILDS`, confirm that the build is
-using the committed `pnpm-workspace.yaml` and that it contains:
+using the committed `pnpm-workspace.yaml`, that the Docker dependency stage
+copies it before `pnpm install`, and that it contains:
 
 ```yaml
 allowBuilds:
   sharp: false
   unrs-resolver: true
+```
+
+The corresponding Dockerfile copy step is:
+
+```dockerfile
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 ```
 
 The `Tarball download average speed ... is below 50 KiB/s` message is only a
