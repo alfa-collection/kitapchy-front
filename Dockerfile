@@ -13,6 +13,7 @@ FROM base AS builder
 WORKDIR /app
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+RUN test -n "$NEXT_PUBLIC_API_URL" || (echo "NEXT_PUBLIC_API_URL build argument is required" >&2 && exit 1)
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
 RUN pnpm build
@@ -20,9 +21,12 @@ RUN pnpm build
 FROM node:24-alpine AS runner
 WORKDIR /app
 
+ARG NEXT_PUBLIC_API_URL
+
 ENV NODE_ENV=production
 ENV HOSTNAME=0.0.0.0
 ENV PORT=3000
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
 RUN apk add --no-cache nginx supervisor \
   && addgroup --system --gid 1001 nodejs \

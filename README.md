@@ -9,7 +9,7 @@ Choose one installation method:
 - Local development: Node.js 24+ and pnpm 12.8.1+.
 - Containerized deployment: Docker.
 
-The frontend needs the URL of the backend API. Set it in `NEXT_PUBLIC_API_URL`, for example `http://localhost:1337`.
+The frontend gets the backend origin only from `NEXT_PUBLIC_API_URL`.
 
 ## Local installation
 
@@ -18,20 +18,23 @@ From this `frontend` directory, install dependencies and create your environment
 ```sh
 corepack enable
 pnpm install --frozen-lockfile
-cp .env.example .env.local
+cp .env.example .env
 ```
 
-Edit `.env.local`:
+Edit `.env`:
 
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:1337
+NEXT_PUBLIC_API_URL=http://your-server-ip:1337
 ```
 
 Start the development server:
 
 ```sh
-pnpm dev
+npm run dev
 ```
+
+Next.js loads `NEXT_PUBLIC_API_URL` directly from `.env` when the development
+server starts. Restart the server after changing `.env`.
 
 Open [http://localhost:3000](http://localhost:3000).
 
@@ -47,8 +50,12 @@ pnpm start
 Build the production image from this `frontend` directory. `NEXT_PUBLIC_API_URL` is a public, browser-facing value and is embedded during the Next.js build, so supply it with `--build-arg`.
 
 ```sh
+set -a
+. ./.env
+set +a
+
 docker build \
-  --build-arg NEXT_PUBLIC_API_URL=http://localhost:1337 \
+  --build-arg NEXT_PUBLIC_API_URL="$NEXT_PUBLIC_API_URL" \
   -t kitapchy-frontend .
 ```
 

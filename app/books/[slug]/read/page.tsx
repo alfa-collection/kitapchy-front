@@ -31,10 +31,11 @@ const formatTime = (seconds: number) => {
   const hours = Math.floor(safeSeconds / 3600); const minutes = Math.floor((safeSeconds % 3600) / 60); const remainder = safeSeconds % 60;
   return hours ? `${hours}:${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}` : `${minutes}:${String(remainder).padStart(2, "0")}`;
 };
-// Keep text and audio behind the Next.js proxy.  It forwards range requests
-// for audio and lets the browser load each small text_N.json part on demand.
-const booksApiUrl = "/api/book-files";
-const bookFileUrl = (folder: string, file: string) => `${booksApiUrl}/${encodeURIComponent(folder)}/${file.split("/").map(encodeURIComponent).join("/")}`;
+const booksApiUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
+const bookFileUrl = (folder: string, file: string) => {
+  if (!booksApiUrl) throw new Error("NEXT_PUBLIC_API_URL is required.");
+  return `${booksApiUrl}/books/${encodeURIComponent(folder)}/${file.split("/").map(encodeURIComponent).join("/")}`;
+};
 const assetFolderAliases: Record<string, string> = {
   "doyle-the-red-headed-league": "arthur-conan-doyle-the-red-headed-league",
   "can-you-keep-a-secret": "sophie-kinsella-can-you-keep-a-secret",
