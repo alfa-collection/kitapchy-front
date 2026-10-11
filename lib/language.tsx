@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
+import { UiIcon } from "@/components/ui-icon";
 
 export type AppLanguage = "en" | "ru" | "tk";
 type LanguageContextValue = { language: AppLanguage; setLanguage: (language: AppLanguage) => void; text: (english: string, russian: string, turkmen?: string) => string };
@@ -108,10 +109,10 @@ export function LanguageDropdown({ standalone = false, className = "" }: { stand
   }, []);
   return <div ref={rootRef} className={`language-dropdown ${standalone ? "standalone-language" : ""} ${className}`}>
     <button className="language-trigger" type="button" aria-label={text("Language", "Язык", "Dil")} aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen((value) => !value)}>
-      <span className="language-code">{selected.short}</span><span className="language-current">{selected.name}</span><span className="language-chevron" aria-hidden="true">⌄</span>
+      <span className="language-code">{selected.short}</span><span className="language-current">{selected.name}</span><UiIcon className="language-chevron" name="chevron-down" size={15} />
     </button>
     {open && <div className="language-menu" role="listbox" aria-label={text("Language", "Язык", "Dil")}>
-      {languageOptions.map((option) => <button type="button" role="option" aria-selected={language === option.code} className={language === option.code ? "active" : ""} key={option.code} onClick={() => { setLanguage(option.code); setOpen(false); }}><span>{option.short}</span><strong>{option.name}</strong>{language === option.code && <i aria-hidden="true">✓</i>}</button>)}
+      {languageOptions.map((option) => <button type="button" role="option" aria-selected={language === option.code} className={language === option.code ? "active" : ""} key={option.code} onClick={() => { setLanguage(option.code); setOpen(false); }}><span>{option.short}</span><strong>{option.name}</strong>{language === option.code && <UiIcon name="check" size={15} />}</button>)}
     </div>}
   </div>;
 }

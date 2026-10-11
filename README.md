@@ -25,7 +25,11 @@ Edit `.env`:
 
 ```env
 NEXT_PUBLIC_API_URL=http://your-server-ip:1337
+DEV_ORIGIN=your-frontend-ip
 ```
+
+`DEV_ORIGIN` is only needed when opening `next dev` from another device on
+your local network. Use the hostname or IP without a protocol or port.
 
 Start the development server:
 

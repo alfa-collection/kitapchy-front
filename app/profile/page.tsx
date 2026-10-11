@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { BookCard } from "@/components/book-card";
 import { Shell } from "@/components/shell";
+import { UiIcon } from "@/components/ui-icon";
 import {
   activeSubscription,
   resolveAccountPlan,
@@ -22,6 +23,7 @@ import {
   listSubscriptionPlans,
   listUserSubscriptions,
   purchaseSubscription,
+  removeBookmark,
   restoreAuthToken,
   updateUser,
   type PaymentMethod,
@@ -68,6 +70,8 @@ export default function ProfilePage() {
     "success",
   );
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [removingBookId, setRemovingBookId] = useState<number | null>(null);
+  const [bookshelfNotice, setBookshelfNotice] = useState("");
   const [activeTab, setActiveTab] = useState<ProfileTab>("overview");
 
   useEffect(() => {
@@ -173,6 +177,22 @@ export default function ProfilePage() {
     setPaymentMethods(next);
     saveFrontendPaymentMethods(user.id, next);
     setCardNotice("Payment method removed.");
+  }
+
+  async function removeSavedBook(book: Book) {
+    if (typeof book.id !== "number" || removingBookId !== null) return;
+    setRemovingBookId(book.id);
+    setBookshelfNotice("");
+    try {
+      const result = await removeBookmark(book.id);
+      if (!result.success) throw new Error();
+      setBookmarks((current) => current.filter((item) => item.id !== book.id));
+      setBookshelfNotice(text("Book removed from your bookshelf.", "Книга удалена с вашей полки.", "Kitap tekjäňizden aýryldy."));
+    } catch {
+      setBookshelfNotice(text("We couldn’t remove this book. Please try again.", "Не удалось удалить книгу. Попробуйте снова.", "Kitaby aýryp bolmady. Gaýtadan synanyşyň."));
+    } finally {
+      setRemovingBookId(null);
+    }
   }
 
   async function redeemPromo(event: FormEvent<HTMLFormElement>) {
@@ -305,7 +325,7 @@ export default function ProfilePage() {
           </p>
           <div className="hero-buttons">
             <Link href="/auth?mode=signin" className="button primary">
-              Log in <span>→</span>
+              Log in <UiIcon name="arrow-right" size={16} />
             </Link>
             <Link href="/auth?mode=signup" className="button ghost">
               Create free account
@@ -353,7 +373,7 @@ export default function ProfilePage() {
             <div className="profile-title-row">
               <p className="eyebrow">YOUR READING SPACE</p>
               <span className={`plan-pill ${plan}`}>
-                {isPro ? "✦ Pro" : text("Free", "Бесплатно")}
+                {isPro && <UiIcon name="sparkle" size={12} />} {isPro ? "Pro" : text("Free", "Бесплатно")}
               </span>
             </div>
             <h1>
@@ -370,7 +390,7 @@ export default function ProfilePage() {
             className="text-link account-trigger"
             onClick={() => setSettingsOpen(true)}
           >
-            Account settings →
+            Account settings <UiIcon name="arrow-right" size={14} />
           </button>
         </section>
         <section className="stats">
@@ -405,25 +425,25 @@ export default function ProfilePage() {
         {activeTab === "overview" && (
           <section className="profile-overview" aria-label={text("Account overview", "Обзор аккаунта", "Hasabyň syny")}>
             <button type="button" className="overview-card membership" onClick={() => selectTab("membership")}>
-              <span className="overview-icon">✦</span>
+              <span className="overview-icon"><UiIcon name="sparkle" /></span>
               <small>{text("CURRENT ACCESS", "ТЕКУЩИЙ ДОСТУП", "HÄZIRKI ELÝETERLILIK")}</small>
               <strong>{isPro ? "Kitapchy Pro" : text("Free reader", "Бесплатный доступ", "Mugt okaýyş")}</strong>
               <p>{membershipDetail}</p>
-              <i>→</i>
+              <i><UiIcon name="arrow-right" size={15} /></i>
             </button>
             <button type="button" className="overview-card bookshelf" onClick={() => selectTab("bookshelf")}>
-              <span className="overview-icon">▤</span>
+              <span className="overview-icon"><UiIcon name="library" /></span>
               <small>{text("YOUR LIBRARY", "ВАША БИБЛИОТЕКА", "KITAPHANAŇYZ")}</small>
               <strong>{text("Saved stories", "Сохранённые книги", "Saklanan kitaplar")}</strong>
               <p>{bookmarks.length} {text("books ready to continue", "книг для продолжения", "kitap dowam etmäge taýýar")}</p>
-              <i>→</i>
+              <i><UiIcon name="arrow-right" size={15} /></i>
             </button>
             <button type="button" className="overview-card billing" onClick={() => selectTab("billing")}>
-              <span className="overview-icon">◇</span>
+              <span className="overview-icon"><UiIcon name="card" /></span>
               <small>{text("PAYMENT", "ОПЛАТА", "TÖLEG")}</small>
               <strong>{text("Payment methods", "Способы оплаты", "Töleg usullary")}</strong>
               <p>{paymentMethods.length} {text("saved methods", "сохранённых способов", "saklanan usul")}</p>
-              <i>→</i>
+              <i><UiIcon name="arrow-right" size={15} /></i>
             </button>
           </section>
         )}
@@ -466,7 +486,7 @@ export default function ProfilePage() {
               className={`plan-card featured ${isPro ? "selected" : ""}`}
             >
               <div>
-                <span className="plan-icon">✦</span>
+                <span className="plan-icon"><UiIcon name="sparkle" size={17} /></span>
                 <p className="eyebrow">PRO</p>
                 <span className="recommended">FULL EXPERIENCE</span>
               </div>
@@ -491,7 +511,7 @@ export default function ProfilePage() {
                 {isPro
                   ? "Pro is active"
                   : text("Choose a plan", "Выбрать план")}{" "}
-                <span>→</span>
+                <UiIcon name="arrow-right" size={16} />
               </button>
             </article>
           </div>
@@ -572,7 +592,7 @@ export default function ProfilePage() {
 
         <section className="promo-section">
           <div className="promo-art" aria-hidden="true">
-            <span>✦</span>
+            <UiIcon name="sparkle" size={16} />
             <i>P</i>
           </div>
           <div className="promo-copy">
@@ -607,7 +627,7 @@ export default function ProfilePage() {
                   }
                 />
                 <button type="submit">
-                  Redeem <span>→</span>
+                  Redeem <UiIcon name="arrow-right" size={15} />
                 </button>
               </div>
             </form>
@@ -727,11 +747,11 @@ export default function ProfilePage() {
               <p className="eyebrow">SAVED FOR LATER</p>
               <h2>Your bookshelf</h2>
             </div>
-            <Link href="/catalog">Browse library →</Link>
+            <Link href="/catalog">Browse library <UiIcon name="arrow-right" size={15} /></Link>
           </div>
           {!isPro ? (
             <div className="profile-lock">
-              <span>♢</span>
+              <span><UiIcon name="bookmark" size={22} /></span>
               <div>
                 <h3>Bookshelf is a Pro feature</h3>
                 <p>Upgrade to save books here and return to them anytime.</p>
@@ -743,7 +763,11 @@ export default function ProfilePage() {
           ) : bookmarks.length ? (
             <div className="book-grid featured-grid">
               {bookmarks.map((book) => (
-                <BookCard key={book.documentId || book.slug} book={book} />
+                <BookCard
+                  key={book.documentId || book.slug}
+                  book={book}
+                  action={<button type="button" className="remove-bookmark" disabled={removingBookId === book.id} aria-label={text(`Remove ${book.name} from bookshelf`, `Удалить ${book.name} с полки`, `${book.name} kitabyny tekjeden aýyr`)} onClick={() => void removeSavedBook(book)}>{removingBookId === book.id ? "…" : <UiIcon name="close" size={17} />}</button>}
+                />
               ))}
             </div>
           ) : (
@@ -751,6 +775,7 @@ export default function ProfilePage() {
               Your bookshelf is empty. Save a book to find it here.
             </p>
           )}
+          {bookshelfNotice && <p className="bookshelf-notice" role="status">{bookshelfNotice}</p>}
         </section>
         )}
 
@@ -773,7 +798,7 @@ export default function ProfilePage() {
                 aria-label="Close account settings"
                 onClick={() => setSettingsOpen(false)}
               >
-                ×
+                <UiIcon name="close" size={18} />
               </button>
               <p className="eyebrow">ACCOUNT SETTINGS</p>
               <h2 id="account-settings-title">Your profile</h2>

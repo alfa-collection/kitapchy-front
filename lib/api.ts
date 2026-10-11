@@ -299,6 +299,23 @@ export const getBooks = async () =>
 export const getBook = async (slug: string) =>
   (await listBooks({ populate: "*", "filters[slug][$eq]": slug }))
     .data[0] ?? null;
+export const getSimilarBooks = async (
+  genreNames: string[],
+  excludeSlug: string,
+  limit = 4,
+) => {
+  if (!genreNames.length) return [];
+
+  return (
+    await listBooks({
+      populate: "*",
+      "filters[genre_id][name][$in]": genreNames,
+      "filters[slug][$ne]": excludeSlug,
+      "pagination[pageSize]": limit,
+      sort: "views:desc",
+    })
+  ).data;
+};
 export const listBookmarks = async () =>
   (
     await api.get<CollectionResponse<BookRecord | null>>("/user-bookmarks")
@@ -309,6 +326,12 @@ export const addBookmark = async (bookId: Id) =>
   (
     await api.post<{ success: boolean }>(
       `/user-bookmarks/${encodeURIComponent(String(bookId))}`,
+    )
+  ).data;
+export const removeBookmark = async (bookmarkId: Id) =>
+  (
+    await api.delete<{ success: boolean }>(
+      `/user-bookmarks/${encodeURIComponent(String(bookmarkId))}`,
     )
   ).data;
 

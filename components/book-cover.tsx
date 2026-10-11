@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import { mediaUrl } from "@/lib/api";
 import type { Book } from "@/lib/books";
 import { useLanguage } from "@/lib/language";
@@ -21,10 +23,12 @@ export function BookCover({
   return (
     <div className={`book-cover ${className}`}>
       {image ? (
-        <img
+        <Image
           className="book-cover-image"
           src={image}
-          alt={`${text("Cover of", "Обложка книги")} ${book.name}`}
+          alt={`${text("Cover of", "Обложка книги", "Kitabyň daşky suraty")} ${book.name}`}
+          fill
+          sizes="(max-width: 800px) 50vw, 25vw"
         />
       ) : (
         <>

@@ -14,6 +14,7 @@ import { resolveAccountPlan, type AccountPlan } from "@/lib/account";
 import { useLanguage } from "@/lib/language";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { BrandLogo } from "@/components/brand-logo";
+import { UiIcon } from "@/components/ui-icon";
 
 export function Shell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -61,7 +62,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
           <LanguageSwitcher />
           {user ? (
             <>
-              <Link className={`shell-plan ${plan}`} href="/profile#plans">{plan === "pro" ? "✦ Pro" : copy.free}</Link>
+              <Link className={`shell-plan ${plan}`} href="/profile#plans">{plan === "pro" && <UiIcon name="sparkle" size={12} />} {plan === "pro" ? "Pro" : copy.free}</Link>
               <Link
                 className="profile-dot"
                 href="/profile"
