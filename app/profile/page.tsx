@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { BookCard } from "@/components/book-card";
+import { ProfileSummary } from "@/components/profile/profile-summary";
+import { ProfileTabs, type ProfileTab } from "@/components/profile/profile-tabs";
 import { Shell } from "@/components/shell";
 import { UiIcon } from "@/components/ui-icon";
 import {
@@ -36,8 +38,6 @@ import {
 import { type Book } from "@/lib/books";
 import { useLanguage } from "@/lib/language";
 import { PageLoading } from "@/components/loading-state";
-
-type ProfileTab = "overview" | "membership" | "billing" | "bookshelf";
 
 const displayName = (user: User) =>
   (user.username || user.email.split("@")[0]).trim();
@@ -336,7 +336,6 @@ export default function ProfilePage() {
     );
 
   const name = displayName(user);
-  const initial = name.charAt(0).toUpperCase();
   const isPro = plan === "pro";
   const membershipDetail =
     isPro && subscription
@@ -367,60 +366,8 @@ export default function ProfilePage() {
   return (
     <Shell>
       <main className="profile-page profile-dashboard">
-        <section className="profile-hero profile-hero-upgraded">
-          <div className="avatar">{initial}</div>
-          <div className="profile-identity">
-            <div className="profile-title-row">
-              <p className="eyebrow">YOUR READING SPACE</p>
-              <span className={`plan-pill ${plan}`}>
-                {isPro && <UiIcon name="sparkle" size={12} />} {isPro ? "Pro" : text("Free", "Бесплатно")}
-              </span>
-            </div>
-            <h1>
-              {text("Welcome back", "С возвращением")}, {name}.
-            </h1>
-            <p>
-              {isPro
-                ? "Every story, translation, and audio track is open."
-                : "Enjoy your first book part, then upgrade whenever you’re ready."}
-            </p>
-          </div>
-          <button
-            type="button"
-            className="text-link account-trigger"
-            onClick={() => setSettingsOpen(true)}
-          >
-            Account settings <UiIcon name="arrow-right" size={14} />
-          </button>
-        </section>
-        <section className="stats">
-          <div>
-            <strong>{bookmarks.length}</strong>
-            <span>{text("saved books", "сохранённых книг")}</span>
-          </div>
-          <div>
-            <strong>{savedWordsCount}</strong>
-            <span>{text("saved words", "сохранённых слов")}</span>
-          </div>
-          <div>
-            <strong>{isPro ? "Pro" : text("Free", "Бесплатно")}</strong>
-            <span>{membershipDetail}</span>
-          </div>
-        </section>
-
-        <nav className="profile-tabs" aria-label={text("Profile sections", "Разделы профиля", "Profil bölümleri")}>
-          {([
-            ["overview", text("Overview", "Обзор", "Umumy")],
-            ["membership", text("Membership", "Подписка", "Agzalyk")],
-            ["billing", text("Billing", "Оплата", "Töleg")],
-            ["bookshelf", text("Bookshelf", "Книжная полка", "Kitap tekjesi")],
-          ] as Array<[ProfileTab, string]>).map(([tab, label]) => (
-            <button type="button" className={activeTab === tab ? "active" : ""} aria-current={activeTab === tab ? "page" : undefined} onClick={() => selectTab(tab)} key={tab}>
-              {label}
-              {tab === "bookshelf" && <span>{bookmarks.length}</span>}
-            </button>
-          ))}
-        </nav>
+        <ProfileSummary name={name} plan={plan} membershipDetail={membershipDetail} bookmarksCount={bookmarks.length} savedWordsCount={savedWordsCount} onOpenSettings={() => setSettingsOpen(true)} />
+        <ProfileTabs active={activeTab} bookmarksCount={bookmarks.length} onSelect={selectTab} />
 
         {activeTab === "overview" && (
           <section className="profile-overview" aria-label={text("Account overview", "Обзор аккаунта", "Hasabyň syny")}>

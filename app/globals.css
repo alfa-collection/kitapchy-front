@@ -2245,6 +2245,34 @@ p {
   margin: auto;
   padding: 34px 0 104px;
 }
+.book-not-found {
+  position: relative;
+  display: grid;
+  min-height: 560px;
+  grid-template-columns: minmax(260px, .75fr) minmax(320px, 1fr);
+  align-items: center;
+  gap: clamp(42px, 8vw, 100px);
+  padding: 56px clamp(28px, 6vw, 76px);
+  overflow: hidden;
+  border: 1px solid #dce8dc;
+  border-radius: 28px;
+  background: linear-gradient(145deg, #f4f9ef, #fffdf7 58%, #edf6ee);
+  box-shadow: 0 24px 80px #2d4b3512;
+}
+.book-not-found:after { content: ""; position: absolute; right: -130px; bottom: -180px; width: 390px; height: 390px; border: 1px solid #75b57621; border-radius: 50%; box-shadow: 0 0 0 55px #75b5760b, 0 0 0 110px #75b57608; }
+.missing-book-art { position: relative; z-index: 1; width: 250px; height: 300px; margin: auto; }
+.missing-page { position: absolute; display: grid; width: 190px; height: 260px; place-items: center; border-radius: 5px 14px 14px 5px; }
+.missing-page.page-back { top: 6px; left: 38px; background: #a9cbaa; box-shadow: 16px 20px 35px #31513a28; transform: rotate(7deg); }
+.missing-page.page-front { z-index: 2; top: 20px; left: 12px; align-content: center; gap: 20px; border-left: 9px solid #355946; background: linear-gradient(145deg, #47745b, #294838); color: #e9f5df; box-shadow: 17px 24px 38px #29473535; transform: rotate(-6deg); }
+.missing-page.page-front b { font: 800 46px/1 Georgia, serif; letter-spacing: -3px; }
+.missing-book-art > i { position: absolute; right: 6px; bottom: 8px; width: 72px; height: 3px; border-radius: 50%; background: #36533f24; box-shadow: 0 0 17px 7px #36533f20; }
+.book-not-found-copy { position: relative; z-index: 1; max-width: 510px; }
+.book-not-found-copy h1 { margin: 12px 0 18px; color: #293f33; font: 800 clamp(38px, 5vw, 62px)/.98 Georgia, serif; letter-spacing: -2.5px; }
+.book-not-found-copy > p:not(.eyebrow) { max-width: 455px; margin: 0; color: #708078; font-size: 15px; line-height: 1.75; }
+.book-not-found-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 30px; }
+.book-not-found-actions .button { justify-content: center; }
+.reader .book-not-found { width: min(100%, 960px); min-height: 480px; margin: 36px auto; }
+@media (max-width: 720px) { .book-not-found { min-height: 0; grid-template-columns: 1fr; gap: 10px; padding: 44px 24px; text-align: center; } .missing-book-art { width: 205px; height: 255px; transform: scale(.82); } .book-not-found-copy { margin: auto; } .book-not-found-copy > p:not(.eyebrow) { margin-inline: auto; } .book-not-found-actions { justify-content: center; } }
 .book-crumbs {
   display: flex;
   gap: 10px;

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { getBooks } from "@/lib/api";
-import { type Book } from "@/lib/books";
+import { normalizeBookLevel, type Book } from "@/lib/books";
 import { BookCard } from "@/components/book-card";
 import { useLanguage } from "@/lib/language";
 import { BookGridLoading } from "@/components/loading-state";
@@ -40,7 +40,7 @@ export function CatalogClient({ featured = false }: { featured?: boolean }) {
     () =>
       books.filter(
         (book) =>
-          (level === "All levels" || String(book.difficulty) === level) &&
+          (level === "All levels" || String(normalizeBookLevel(book.difficulty)) === level) &&
           (genre === "All genres" ||
             book.genre_id?.some((item) => item.name === genre)) &&
           `${book.name} ${book.authors_or_directors_id?.[0]?.name || ""}`
@@ -75,7 +75,7 @@ export function CatalogClient({ featured = false }: { featured?: boolean }) {
             </label>
             <div className="select-row">
               <span>{text("Reading level", "Уровень чтения")}</span>
-              {["All levels", "1", "2", "3", "4"].map((item) => (
+              {["All levels", "1", "2", "3"].map((item) => (
                 <button
                   key={item}
                   onClick={() => resetPage(() => setLevel(item))}

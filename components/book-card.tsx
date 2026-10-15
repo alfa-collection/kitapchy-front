@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { BookCover } from "@/components/book-cover";
-import { formatBookDuration, type Book } from "@/lib/books";
+import { formatBookDuration, normalizeBookLevel, type Book } from "@/lib/books";
 import { useLanguage } from "@/lib/language";
 
 export function BookCard({ book, action }: { book: Book; action?: ReactNode }) {
@@ -11,7 +11,7 @@ export function BookCard({ book, action }: { book: Book; action?: ReactNode }) {
       <Link href={`/books/${book.slug}`} className="book-card">
         <BookCover book={book} />
         <div className="card-meta">
-          <span>{text("Level", "Уровень")} {book.difficulty || 1}</span>
+          <span>{text("Level", "Уровень")} {normalizeBookLevel(book.difficulty)}</span>
           <span>{formatBookDuration(book.duration)}</span>
         </div>
         <h3>{book.name}</h3>

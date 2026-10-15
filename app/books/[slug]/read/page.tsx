@@ -1,63 +1,27 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, type MouseEvent } from "react";
-import { addDictionaryWord, getBook, getCurrentUser, listDictionaryEntries, listUserSubscriptions, restoreAuthToken } from "@/lib/api";
-import { resolveAccountPlan } from "@/lib/account";
+import { ClickableText } from "@/components/reader/clickable-text";
+import { BookNotFound } from "@/components/book-not-found";
+import { ReaderIcon as Icon } from "@/components/reader/reader-icon";
+import { ReaderLoading } from "@/components/reader/reader-loading";
+import { addDictionaryWord, getBook, restoreAuthToken } from "@/lib/api";
 import { type Book } from "@/lib/books";
+import {
+  audioFileName as audioFile,
+  formatReaderTime as formatTime,
+  loadManifest as fetchManifest,
+  loadTextPart as fetchTextPart,
+  readerAssetFolder as bookAssetFolder,
+  readerAssetUrl as bookFileUrl,
+  type BookManifest,
+  type ReaderSentence as Sentence,
+} from "@/lib/reader-assets";
 import { UiIcon } from "@/components/ui-icon";
 
-type Sentence = { id: string; text: string; translation: string; audio: string; begin: number; end: number; part?: number };
-type TextFile = { sentences?: Sentence[] };
-type BookManifest = { sentence_count?: number; audio_files?: Array<{ name: string; duration?: number }>; chapters?: Array<{ title?: string; start?: number; audio?: string; sentence_id?: string }> };
 type TranslationLanguage = "ru" | "tr";
 const translationLanguages: Record<TranslationLanguage, string> = { ru: "Russian", tr: "Turkish" };
-
-function Icon({ name, size = 18 }: { name: "back" | "previous" | "next" | "play" | "pause" | "sound"; size?: number }) {
-  const paths = {
-    back: <><path d="m15 18-6-6 6-6" /><path d="M9 12h12" /></>,
-    previous: <><path d="M7 6v12" /><path d="m18 6-7 6 7 6V6Z" /></>,
-    next: <><path d="M17 6v12" /><path d="m6 6 7 6-7 6V6Z" /></>,
-    play: <path d="m8 5 11 7-11 7V5Z" fill="currentColor" stroke="none" />,
-    pause: <><path d="M8 6v12" /><path d="M16 6v12" /></>,
-    sound: <><path d="M5 10v4h3l4 3V7l-4 3H5Z" /><path d="M16 9.5a4 4 0 0 1 0 5" /></>,
-  };
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name]}</svg>;
-}
-
-const audioFile = (audio: string) => audio.split("/").at(-1) || "";
-const formatTime = (seconds: number) => {
-  const safeSeconds = Math.max(0, Math.floor(seconds));
-  const hours = Math.floor(safeSeconds / 3600); const minutes = Math.floor((safeSeconds % 3600) / 60); const remainder = safeSeconds % 60;
-  return hours ? `${hours}:${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}` : `${minutes}:${String(remainder).padStart(2, "0")}`;
-};
-const booksApiUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
-const bookFileUrl = (folder: string, file: string) => {
-  if (!booksApiUrl) throw new Error("NEXT_PUBLIC_API_URL is required.");
-  return `${booksApiUrl}/books/${encodeURIComponent(folder)}/${file.split("/").map(encodeURIComponent).join("/")}`;
-};
-const assetFolderAliases: Record<string, string> = {
-  "doyle-the-red-headed-league": "arthur-conan-doyle-the-red-headed-league",
-  "can-you-keep-a-secret": "sophie-kinsella-can-you-keep-a-secret",
-};
-const folderSlug = (value?: string) => value?.replace(/\.[a-z0-9]+$/i, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-
-async function fetchTextPart(folder: string, part: number) {
-  const response = await fetch(bookFileUrl(folder, `chunks/text_${part}.json`));
-  // Chunk files are finite. A 404 is the expected signal that there are no
-  // more pages to load, rather than a reader error.
-  if (response.status === 404) return null;
-  if (!response.ok) throw new Error("Unable to load the book text.");
-  return ((await response.json() as TextFile).sentences || []).map((sentence) => ({ ...sentence, part }));
-}
-
-async function fetchManifest(folder: string) {
-  const response = await fetch(bookFileUrl(folder, "manifest.json"));
-  if (response.status === 404) return null;
-  if (!response.ok) throw new Error("Unable to load book details.");
-  return await response.json() as BookManifest;
-}
 
 async function translateWord(text: string, target: TranslationLanguage) {
   const response = await fetch("/api/translate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, target }) });
@@ -66,24 +30,6 @@ async function translateWord(text: string, target: TranslationLanguage) {
   return data.translation;
 }
 
-function ClickableText({ text, onWordClick }: { text: string; onWordClick: (word: string, target: HTMLElement) => void }) {
-  return <>{text.split(/([A-Za-z]+(?:['’][A-Za-z]+)?)/g).map((part, index) => /^[A-Za-z]+(?:['’][A-Za-z]+)?$/.test(part) ? <button key={`${part}-${index}`} type="button" className="reader-word" onClick={(event) => { event.stopPropagation(); onWordClick(part, event.currentTarget); }}>{part}</button> : part)}</>;
-}
-
-function ReaderLoading({ title }: { title: string }) {
-  return <section className="reader-loading-screen" role="status" aria-live="polite" aria-label="Loading book">
-    <div className="loading-book" aria-hidden="true">
-      <span className="loading-book-spine" />
-      <Image className="loading-book-mark" src="/logo.png" alt="" width={450} height={450} />
-      <span className="loading-book-page loading-book-page-one" />
-      <span className="loading-book-page loading-book-page-two" />
-    </div>
-    <p className="reader-loading-kicker">Preparing your reading room</p>
-    <h1>{title || "Your book"}</h1>
-    <p className="reader-loading-copy">Opening the first passages and getting the audio ready.</p>
-    <div className="reader-loading-progress" aria-hidden="true"><i /></div>
-  </section>;
-}
 
 export default function ReaderPage({ params }: { params: Promise<{ slug: string }> }) {
   const [slug, setSlug] = useState(""); const [book, setBook] = useState<Book>(); const [folder, setFolder] = useState("");
@@ -117,44 +63,44 @@ export default function ReaderPage({ params }: { params: Promise<{ slug: string 
     let cancelled = false;
     params.then(async ({ slug: value }) => {
       setSlug(value); setError(""); setSentences([]); setActiveIndex(0); setFolder(""); setNextPart(2); setPreviousPart(0); setHasMore(true); setManifest(null);
-      let proAccess = false;
-      if (restoreAuthToken()) {
-        try { const [currentUser, subscriptions] = await Promise.all([getCurrentUser(), listUserSubscriptions().catch(() => [])]); proAccess = resolveAccountPlan(currentUser, subscriptions) === "pro"; } catch { /* Guests and expired sessions use the free preview. */ }
-      }
-      if (!cancelled) setIsPro(proAccess);
       let resolvedBook: Book | null = null;
       try { resolvedBook = await getBook(value); }
-      catch { /* The asset folder can still be tried from the URL slug below. */ }
+      catch { /* The reader reports the request failure below. */ }
       if (cancelled) return;
-      setBook(resolvedBook || undefined);
-      const folders = [
-        assetFolderAliases[value], assetFolderAliases[resolvedBook?.slug || ""],
-        folderSlug(resolvedBook?.image?.name), resolvedBook?.slug, folderSlug(resolvedBook?.name), value, value.replace(/^the-/, ""),
-      ]
-        .filter((item): item is string => Boolean(item))
-        .filter((item, index, items) => items.indexOf(item) === index);
-      for (const candidate of folders) {
-        try {
-          const storedPosition = (() => { try { return JSON.parse(localStorage.getItem(`kitapchy-reading:${value}`) || "null") as { part?: number; sentenceId?: string } | null; } catch { return null; } })();
-          const startPart = proAccess ? Math.max(1, storedPosition?.part || 1) : 1;
-          const firstPart = await fetchTextPart(candidate, startPart);
-          if (firstPart?.length) {
-            const details = await fetchManifest(candidate).catch(() => null);
-            if (!cancelled) {
-              const restoredIndex = Math.max(0, firstPart.findIndex((sentence) => sentence.id === storedPosition?.sentenceId));
-              revealSentence.current = Boolean(storedPosition?.sentenceId);
-              setFolder(candidate); setManifest(details); setSentences(firstPart); setNextPart(startPart + 1); setPreviousPart(startPart - 1); setHasMore(true);
-              setActiveIndex(restoredIndex);
-              try {
-                const storedWords = JSON.parse(localStorage.getItem(`kitapchy-words:${value}`) || "[]");
-                setSavedWords(Array.isArray(storedWords) ? storedWords.filter((item): item is string => typeof item === "string") : []);
-              } catch { setSavedWords([]); }
-            }
-            return;
-          }
-        } catch (loadError) { if (!cancelled) setError(loadError instanceof Error ? loadError.message : "Unable to load the book."); return; }
+      if (!resolvedBook) {
+        setError("Unable to load the book.");
+        return;
       }
-      if (!cancelled) setError("This book does not have readable text files yet.");
+      const proAccess = resolvedBook.ismember === true;
+      setIsPro(proAccess);
+      setBook(resolvedBook || undefined);
+      const candidate = bookAssetFolder(resolvedBook);
+      if (!candidate) {
+        setError("This book does not have an author or slug for its reading files.");
+        return;
+      }
+      try {
+        const storedPosition = (() => { try { return JSON.parse(localStorage.getItem(`kitapchy-reading:${value}`) || "null") as { part?: number; sentenceId?: string } | null; } catch { return null; } })();
+        const startPart = proAccess ? Math.max(1, storedPosition?.part || 1) : 1;
+        const [firstPart, details] = await Promise.all([
+          fetchTextPart(candidate, startPart),
+          fetchManifest(candidate),
+        ]);
+        if (!firstPart?.length) {
+          if (!cancelled) setError("This book does not have readable text files yet.");
+          return;
+        }
+        if (!cancelled) {
+          const restoredIndex = Math.max(0, firstPart.findIndex((sentence) => sentence.id === storedPosition?.sentenceId));
+          revealSentence.current = Boolean(storedPosition?.sentenceId);
+          setFolder(candidate); setManifest(details); setSentences(firstPart); setNextPart(startPart + 1); setPreviousPart(startPart - 1); setHasMore(true);
+          setActiveIndex(restoredIndex);
+          try {
+            const storedWords = JSON.parse(localStorage.getItem(`kitapchy-words:${value}`) || "[]");
+            setSavedWords(Array.isArray(storedWords) ? storedWords.filter((item): item is string => typeof item === "string") : []);
+          } catch { setSavedWords([]); }
+        }
+      } catch (loadError) { if (!cancelled) setError(loadError instanceof Error ? loadError.message : "Unable to load the book."); }
     });
     return () => { cancelled = true; };
   }, [params]);
@@ -163,14 +109,6 @@ export default function ReaderPage({ params }: { params: Promise<{ slug: string 
     const sentence = sentences[activeIndex];
     if (slug && sentence) localStorage.setItem(`kitapchy-reading:${slug}`, JSON.stringify({ part: sentence.part || 1, sentenceId: sentence.id }));
   }, [activeIndex, sentences, slug]);
-  useEffect(() => {
-    const bookId = book?.id;
-    if (!restoreAuthToken() || typeof bookId !== "number") return;
-    listDictionaryEntries().then((entries) => {
-      const words = entries.filter((entry) => entry.book?.id === bookId).map((entry) => entry.word.toLowerCase());
-      if (words.length) setSavedWords((current) => [...new Set([...current, ...words])]);
-    }).catch(() => undefined);
-  }, [book?.id]);
   useEffect(() => {
     if (prependScrollHeight.current === null || !readerBody.current) return;
     readerBody.current.scrollTop += readerBody.current.scrollHeight - prependScrollHeight.current;
@@ -203,7 +141,8 @@ export default function ReaderPage({ params }: { params: Promise<{ slug: string 
     const seekToSentence = () => {
       player.currentTime = pendingSeekTime.current ?? active.begin;
       pendingSeekTime.current = null;
-      if (playingRef.current) player.play().catch(() => setPlaying(false));
+      if (playingRef.current && player.paused)
+        player.play().catch(() => setPlaying(false));
     };
     player.addEventListener("loadedmetadata", seekToSentence, { once: true });
     if (player.readyState >= HTMLMediaElement.HAVE_METADATA) seekToSentence();
@@ -214,9 +153,9 @@ export default function ReaderPage({ params }: { params: Promise<{ slug: string 
     playingRef.current = playing;
     if (!player) return;
     if (!playing) { player.pause(); return; }
-    player.play().catch(() => setPlaying(false));
+    if (player.paused) player.play().catch(() => setPlaying(false));
   }, [playing]);
-  useEffect(() => { if (audio.current) audio.current.volume = volume; }, [volume, active]);
+  useEffect(() => { if (audio.current) audio.current.volume = volume; }, [volume]);
   const loadPreviousPart = useCallback(async () => {
     if (!isPro || !folder || !previousPart || loadingPart || partRequestInFlight.current) return;
     partRequestInFlight.current = true; setLoadingPart(true); setLoadingPrevious(true);
@@ -366,6 +305,6 @@ export default function ReaderPage({ params }: { params: Promise<{ slug: string 
   };
   const audioSrc = active ? bookFileUrl(folder, `audio/${audioFile(active.audio)}`) : "";
   return <main className="reader"><div className="reader-orb reader-orb-one" /><div className="reader-orb reader-orb-two" />{seekingTime !== null && <div className="reader-seeking" role="status"><i /> Switching to <strong>{formatTime(seekingTime)}</strong>…</div>}{upgradeOpen && <div className="upgrade-backdrop" role="presentation" onMouseDown={() => setUpgradeOpen(false)}><section className="upgrade-modal" role="dialog" aria-modal="true" aria-labelledby="upgrade-title" onMouseDown={(event) => event.stopPropagation()}><button type="button" className="modal-close" aria-label="Close upgrade offer" onClick={() => setUpgradeOpen(false)}><UiIcon name="close" size={18} /></button><span className="upgrade-mark"><UiIcon name="sparkle" size={25} /></span><p className="eyebrow">FREE PREVIEW COMPLETE</p><h2 id="upgrade-title">Keep the story going.</h2><p>You reached the end of the free chapter. Upgrade to Pro for every text part, full audio, translations, and saved books.</p><div className="upgrade-actions"><Link href="/profile#plans" className="button primary">See Pro plan <UiIcon name="arrow-right" size={15} /></Link><button type="button" className="button ghost" onClick={() => setUpgradeOpen(false)}>Not now</button></div></section></div>}<header className="reader-top"><Link href={`/books/${slug}`} className="back-link"><Icon name="back" size={16} /> <span>Library</span></Link><div className="reader-book"><span className="reader-kicker">{currentChapter?.title || "Now reading"}</span><strong>{title}</strong></div><div className="reader-status"><i /> <span>{isPro ? "Pro · full book" : "Free preview"}</span></div></header><div ref={readerBody} className="reader-body" onScroll={handleScroll}>
-    {error ? <p className="reader-message">{error}</p> : !sentences.length ? <ReaderLoading title={title} /> : <article className={`reading-pane paired-reader ${showTranslations ? "" : "translations-hidden"}`}><header className="reading-intro"><div><span className="reader-kicker">{book?.genre_id?.[0]?.name || "English reader"}</span><h1>{title}</h1>{author && <p>by {author}</p>}</div><div className="reader-utility"><span className="saved-word-count">{savedWords.length} saved words</span><label className="translation-language">Translate words to<select value={translationLanguage} onChange={(event) => { setTranslationLanguage(event.target.value as TranslationLanguage); setWord(""); setWordTranslation(""); setTranslationError(""); }}><option value="ru">Russian</option><option value="tr">Turkish</option></select></label></div></header>{word && <aside ref={wordPopup} className="word-translation" role="status" style={{ top: wordPosition.top, left: wordPosition.left }}><span><b>{word}</b> · {translationLanguages[translationLanguage]}</span><strong>{translating ? "Translating…" : wordTranslation || translationError}</strong><button type="button" className="save-word" onClick={saveWord}>{savedWords.includes(word.toLowerCase()) ? "Saved" : "Save"}</button><button type="button" onClick={() => setWord("")} aria-label="Close translation"><UiIcon name="close" size={15} /></button></aside>}{loadingPrevious && <p className="reader-loading previous-loading">Loading previous passages…</p>}<div className="parallel-columns"><header className="parallel-headings"><span><i /> Original text</span><span><i /> {translationLanguages[translationLanguage]} translation</span></header><div className="sentence-list">{sentences.map((sentence, index) => <div key={sentence.id} ref={(node) => { sentenceNodes.current[index] = node; }} role="button" tabIndex={0} className={`sentence-pair ${index === activeIndex ? "highlighted" : ""}`} onClick={() => toggleSentencePlayback(index)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); toggleSentencePlayback(index); } }} aria-label={`${index === activeIndex && playing ? "Pause" : "Play"} passage ${index + 1}`}><span className="sentence-play"><Icon name={index === activeIndex && playing ? "pause" : "play"} size={14} /></span><span className="sentence-number">{String(index + 1).padStart(2, "0")}</span><span className="original-text"><ClickableText text={sentence.text} onWordClick={handleWordClick} /></span><span className="translated-text">{sentence.translation || "Translation unavailable"}</span></div>)}</div></div>{loadingPart && !loadingPrevious && <p className="reader-loading">Loading more…</p>}</article>}
-  </div>{active && folder && <audio ref={audio} preload="metadata" src={audioSrc} onTimeUpdate={(event) => handleAudioTimeUpdate(event.currentTarget.currentTime)} onError={() => { setPlaying(false); setError("Audio could not be loaded. Please try again."); }} />}<footer className="reader-controls"><div className="player-actions"><button onClick={() => selectSentence(activeIndex - 1)} disabled={!activeIndex} aria-label="Previous sentence"><Icon name="previous" /></button><button onClick={() => setPlaying((value) => !value)} className="play" disabled={!active} aria-label={playing ? "Pause" : "Play"}>{playing ? <Icon name="pause" size={22} /> : <Icon name="play" size={22} />}</button><button onClick={() => { if (activeIndex === sentences.length - 1) void loadNextPart(); else selectSentence(activeIndex + 1); }} disabled={!active || (activeIndex >= sentences.length - 1 && !hasMore)} aria-label="Next sentence"><Icon name="next" /></button></div><button type="button" className="translation-toggle" onClick={() => setShowTranslations((value) => !value)}>{showTranslations ? "Hide translation" : "Show translation"}</button><div className="timeline"><input aria-label="Reading progress" type="range" min="0" max={totalDuration || 1} step="0.01" value={Math.min(timelineValue, totalDuration)} onChange={(event) => setScrubTime(Number(event.currentTarget.value))} onPointerUp={commitTimelineSeek} onKeyUp={(event) => { if (["ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown"].includes(event.key)) commitTimelineSeek(); }} onMouseMove={previewTimelineTime} onMouseLeave={clearTimelinePreview} />{hoverTime !== null && <output className="timeline-preview" style={{ left: `${totalDuration ? (hoverTime / totalDuration) * 100 : 0}%` }}>{hoveredChapter?.title && <b>{hoveredChapter.title}</b>}{formatTime(hoverTime)}</output>}<span>{currentChapter?.title || `Passage ${activeIndex + 1}`} <b>· {formatTime(timelineValue)} of {formatTime(totalDuration)}</b></span></div><label className="volume-control"><Icon name="sound" size={16} /><input aria-label="Volume" type="range" min="0" max="1" step="0.05" value={volume} onChange={(event) => setVolume(Number(event.currentTarget.value))} /></label><div className="audio-time"><span>{formatTime(globalTime)} <b>/ {formatTime(totalDuration)}</b></span></div></footer></main>;
+    {error && !sentences.length ? <BookNotFound detail={error} /> : !sentences.length ? <ReaderLoading title={title} /> : <article className={`reading-pane paired-reader ${showTranslations ? "" : "translations-hidden"}`}><header className="reading-intro"><div><span className="reader-kicker">{book?.genre_id?.[0]?.name || "English reader"}</span><h1>{title}</h1>{author && <p>by {author}</p>}</div><div className="reader-utility"><span className="saved-word-count">{savedWords.length} saved words</span><label className="translation-language">Translate words to<select value={translationLanguage} onChange={(event) => { setTranslationLanguage(event.target.value as TranslationLanguage); setWord(""); setWordTranslation(""); setTranslationError(""); }}><option value="ru">Russian</option><option value="tr">Turkish</option></select></label></div></header>{error && <p className="reader-message">{error}</p>}{word && <aside ref={wordPopup} className="word-translation" role="status" style={{ top: wordPosition.top, left: wordPosition.left }}><span><b>{word}</b> · {translationLanguages[translationLanguage]}</span><strong>{translating ? "Translating…" : wordTranslation || translationError}</strong><button type="button" className="save-word" onClick={saveWord}>{savedWords.includes(word.toLowerCase()) ? "Saved" : "Save"}</button><button type="button" onClick={() => setWord("")} aria-label="Close translation"><UiIcon name="close" size={15} /></button></aside>}{loadingPrevious && <p className="reader-loading previous-loading">Loading previous passages…</p>}<div className="parallel-columns"><header className="parallel-headings"><span><i /> Original text</span><span><i /> {translationLanguages[translationLanguage]} translation</span></header><div className="sentence-list">{sentences.map((sentence, index) => <div key={sentence.id} ref={(node) => { sentenceNodes.current[index] = node; }} role="button" tabIndex={0} className={`sentence-pair ${index === activeIndex ? "highlighted" : ""}`} onClick={() => toggleSentencePlayback(index)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); toggleSentencePlayback(index); } }} aria-label={`${index === activeIndex && playing ? "Pause" : "Play"} passage ${index + 1}`}><span className="sentence-play"><Icon name={index === activeIndex && playing ? "pause" : "play"} size={14} /></span><span className="sentence-number">{String(index + 1).padStart(2, "0")}</span><span className="original-text"><ClickableText text={sentence.text} onWordClick={handleWordClick} /></span><span className="translated-text">{sentence.translation || "Translation unavailable"}</span></div>)}</div></div>{loadingPart && !loadingPrevious && <p className="reader-loading">Loading more…</p>}</article>}
+  </div>{active && folder && <audio ref={audio} preload="none" src={audioSrc} onTimeUpdate={(event) => handleAudioTimeUpdate(event.currentTarget.currentTime)} onError={() => { setPlaying(false); setError("Audio could not be loaded. Please try again."); }} />}<footer className="reader-controls"><div className="player-actions"><button onClick={() => selectSentence(activeIndex - 1)} disabled={!activeIndex} aria-label="Previous sentence"><Icon name="previous" /></button><button onClick={() => setPlaying((value) => !value)} className="play" disabled={!active} aria-label={playing ? "Pause" : "Play"}>{playing ? <Icon name="pause" size={22} /> : <Icon name="play" size={22} />}</button><button onClick={() => { if (activeIndex === sentences.length - 1) void loadNextPart(); else selectSentence(activeIndex + 1); }} disabled={!active || (activeIndex >= sentences.length - 1 && !hasMore)} aria-label="Next sentence"><Icon name="next" /></button></div><button type="button" className="translation-toggle" onClick={() => setShowTranslations((value) => !value)}>{showTranslations ? "Hide translation" : "Show translation"}</button><div className="timeline"><input aria-label="Reading progress" type="range" min="0" max={totalDuration || 1} step="0.01" value={Math.min(timelineValue, totalDuration)} onChange={(event) => setScrubTime(Number(event.currentTarget.value))} onPointerUp={commitTimelineSeek} onKeyUp={(event) => { if (["ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown"].includes(event.key)) commitTimelineSeek(); }} onMouseMove={previewTimelineTime} onMouseLeave={clearTimelinePreview} />{hoverTime !== null && <output className="timeline-preview" style={{ left: `${totalDuration ? (hoverTime / totalDuration) * 100 : 0}%` }}>{hoveredChapter?.title && <b>{hoveredChapter.title}</b>}{formatTime(hoverTime)}</output>}<span>{currentChapter?.title || `Passage ${activeIndex + 1}`} <b>· {formatTime(timelineValue)} of {formatTime(totalDuration)}</b></span></div><label className="volume-control"><Icon name="sound" size={16} /><input aria-label="Volume" type="range" min="0" max="1" step="0.05" value={volume} onChange={(event) => setVolume(Number(event.currentTarget.value))} /></label><div className="audio-time"><span>{formatTime(globalTime)} <b>/ {formatTime(totalDuration)}</b></span></div></footer></main>;
 }

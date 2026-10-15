@@ -9,9 +9,11 @@ import { useLanguage } from "@/lib/language";
 export function BookCover({
   book,
   className = "",
+  eager = false,
 }: {
   book: Book;
   className?: string;
+  eager?: boolean;
 }) {
   const { text } = useLanguage();
   const image = mediaUrl(book.image?.formats?.small?.url || book.image?.url);
@@ -28,7 +30,8 @@ export function BookCover({
           src={image}
           alt={`${text("Cover of", "Обложка книги", "Kitabyň daşky suraty")} ${book.name}`}
           fill
-          sizes="(max-width: 800px) 50vw, 25vw"
+          loading={eager ? "eager" : "lazy"}
+          sizes={eager ? "(max-width: 800px) 230px, 278px" : "(max-width: 800px) 50vw, 25vw"}
         />
       ) : (
         <>
