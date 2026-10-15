@@ -5,7 +5,7 @@ export function ReaderLoading({ title }: { title: string }) {
     <section className="reader-loading-screen" role="status" aria-live="polite" aria-label="Loading book">
       <div className="loading-book" aria-hidden="true">
         <span className="loading-book-spine" />
-        <Image className="loading-book-mark" src="/logo.png" alt="" width={450} height={450} />
+        <Image className="loading-book-mark" src="/logo.png" alt="" width={450} height={450} loading="eager" />
         <span className="loading-book-page loading-book-page-one" />
         <span className="loading-book-page loading-book-page-two" />
       </div>
