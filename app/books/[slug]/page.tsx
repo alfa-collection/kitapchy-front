@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { BookCover } from "@/components/book-cover";
 import { BookCard } from "@/components/book-card";
@@ -14,6 +15,7 @@ import { BookGridLoading, PageLoading } from "@/components/loading-state";
 import { UiIcon } from "@/components/ui-icon";
 
 export default function BookPage({ params }: { params: Promise<{ slug: string }> }) {
+  const router = useRouter();
   const { text } = useLanguage();
   const [book, setBook] = useState<Book | undefined>();
   const [similarBooks, setSimilarBooks] = useState<Book[]>([]);
@@ -31,6 +33,19 @@ export default function BookPage({ params }: { params: Promise<{ slug: string }>
       .catch(() => setSimilarBooks([]))
       .finally(() => setSimilarLoaded(true));
   }, [book]);
+  useEffect(() => {
+    const libraryLink = document.querySelector<HTMLAnchorElement>(
+      '.book-crumbs a[href="/catalog"]',
+    );
+    if (!libraryLink) return;
+    const returnToPreviousPage = (event: MouseEvent) => {
+      event.preventDefault();
+      if (window.history.length > 1) router.back();
+      else router.push("/catalog");
+    };
+    libraryLink.addEventListener("click", returnToPreviousPage);
+    return () => libraryLink.removeEventListener("click", returnToPreviousPage);
+  }, [book, router]);
   const saveBookmark = async () => {
     if (bookmarked) return;
     if (!isPro) { setBookmarkMessage("Saving books is a Pro feature. Upgrade from your profile."); return; }
